@@ -1,5 +1,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import CategoryForm from './category/CategoryForm.vue'
+import CategoryList from './category/CategoryList.vue'
+import ProductForm from './product/ProductForm.vue'
+import ProductList from './product/ProductList.vue'
 
 const storageKey = 'goodsly-store-data'
 const starterData = {
@@ -70,7 +74,7 @@ const filteredCategories = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return store.value.categories.filter((item) =>
     !query || `${item.name} ${item.description}`.toLowerCase().includes(query)
-  )
+  ).map((category) => ({ ...category, productCount: getProductCount(category.id) }))
 })
 
 function getCategoryName(categoryId) {
@@ -112,12 +116,12 @@ function closeModal() {
   formError.value = ''
 }
 
-function saveProduct() {
-  const name = productForm.value.name.trim()
-  const sku = productForm.value.sku.trim()
-  const price = Number(productForm.value.price)
-  const stock = Number(productForm.value.stock)
-  if (!name || !sku || productForm.value.price === '' || productForm.value.stock === '' || !Number.isFinite(price) || price < 0 || !Number.isInteger(stock) || stock < 0 || !productForm.value.categoryId) {
+function saveProduct(form) {
+  const name = form.name.trim()
+  const sku = form.sku.trim()
+  const price = Number(form.price)
+  const stock = Number(form.stock)
+  if (!name || !sku || form.price === '' || form.stock === '' || !Number.isFinite(price) || price < 0 || !Number.isInteger(stock) || stock < 0 || !form.categoryId) {
     formError.value = 'Enter a name, SKU, valid price and stock, and choose a category.'
     return
   }
@@ -128,7 +132,7 @@ function saveProduct() {
     formError.value = 'That SKU is already in use.'
     return
   }
-  const item = { id: editingItem.value ?? `prd-${crypto.randomUUID()}`, name, sku, price, stock, categoryId: productForm.value.categoryId }
+  const item = { id: editingItem.value ?? `prd-${crypto.randomUUID()}`, name, sku, price, stock, categoryId: form.categoryId }
   if (editingItem.value) {
     store.value.products = store.value.products.map((product) => product.id === editingItem.value ? item : product)
   } else {
@@ -137,9 +141,9 @@ function saveProduct() {
   closeModal()
 }
 
-function saveCategory() {
-  const name = categoryForm.value.name.trim()
-  const description = categoryForm.value.description.trim()
+function saveCategory(form) {
+  const name = form.name.trim()
+  const description = form.description.trim()
   if (!name) {
     formError.value = 'Enter a category name.'
     return
@@ -268,36 +272,20 @@ function deleteCategory(item) {
             <span>{{ categoryError }}</span><button aria-label="Dismiss message" @click="categoryError = ''">×</button>
           </div>
 
-          <div v-if="activeTab === 'products'" class="table-wrap">
-            <table class="product-table">
-              <thead><tr><th>PRODUCT</th><th>SKU</th><th>CATEGORY</th><th>PRICE</th><th>STOCK</th><th></th></tr></thead>
-              <tbody>
-                <tr v-for="(item, index) in filteredProducts" :key="item.id">
-                  <td><div class="product-cell"><div class="product-thumb" :class="`thumb-${index % 4}`">{{ item.name.slice(0, 1).toUpperCase() }}</div><strong>{{ item.name }}</strong></div></td>
-                  <td class="sku">{{ item.sku }}</td>
-                  <td><span class="category-pill">{{ getCategoryName(item.categoryId) }}</span></td>
-                  <td class="price">{{ formatCurrency(item.price) }}</td>
-                  <td><span class="stock-state" :class="item.stock === 0 ? 'stock-out' : item.stock < 10 ? 'stock-low' : 'stock-ok'"><i></i>{{ item.stock === 0 ? 'Out of stock' : `${item.stock} in stock` }}</span></td>
-                  <td><div class="row-actions"><button :aria-label="`Edit ${item.name}`" @click="openEdit(item)">Edit</button><button :aria-label="`Delete ${item.name}`" @click="deleteProduct(item)">Delete</button></div></td>
-                </tr>
-                <tr v-if="filteredProducts.length === 0"><td colspan="6" class="empty-state"><span class="empty-icon">⌕</span><strong>No products found</strong><span>Try a different search or add your first product.</span><button class="text-button" @click="openCreate">Add a product</button></td></tr>
-              </tbody>
-            </table>
-            <div class="table-footer"><span>Showing <strong>{{ filteredProducts.length }}</strong> of {{ store.products.length }} products</span><span class="table-page">Page 1 of 1 <button disabled aria-label="Previous page">‹</button><button disabled aria-label="Next page">›</button></span></div>
-          </div>
-
-          <div v-else class="category-grid">
-            <article v-for="(item, index) in filteredCategories" :key="item.id" class="category-card">
-              <div class="category-card-top">
-                <div class="category-art" :class="`art-${index % 3}`">{{ item.name.slice(0, 1).toUpperCase() }}</div>
-                <div class="row-actions"><button :aria-label="`Edit ${item.name}`" @click="openEdit(item)">Edit</button><button :aria-label="`Delete ${item.name}`" @click="deleteCategory(item)">Delete</button></div>
-              </div>
-              <h3>{{ item.name }}</h3>
-              <p>{{ item.description || 'No description added yet.' }}</p>
-              <div class="category-card-footer"><span>{{ getProductCount(item.id) }} products</span><span class="category-arrow">↗</span></div>
-            </article>
-            <div v-if="filteredCategories.length === 0" class="empty-state category-empty"><span class="empty-icon">⌕</span><strong>No categories found</strong><span>Try a different search or create a category.</span><button class="text-button" @click="openCreate">Add a category</button></div>
-          </div>
+          <ProductList
+            v-if="activeTab === 'products'"
+            :products="filteredProducts"
+            :total-products="store.products.length"
+            :categories="store.categories"
+            @edit="openEdit"
+            @delete="deleteProduct"
+          />
+          <CategoryList
+            v-else
+            :categories="filteredCategories"
+            @edit="openEdit"
+            @delete="deleteCategory"
+          />
         </section>
         <footer class="page-footer"><span>Made for the little things that make a store.</span><span>Goodsly <b>·</b> Store dashboard</span></footer>
       </section>
@@ -309,26 +297,23 @@ function deleteCategory(item) {
           <div><div class="eyebrow">{{ editingItem ? 'UPDATE YOUR CATALOG' : 'GROW YOUR CATALOG' }}</div><h2 id="modal-title">{{ editingItem ? 'Edit' : 'Add' }} {{ activeTab === 'products' ? 'product' : 'category' }}</h2></div>
           <button class="close-button" aria-label="Close dialog" @click="closeModal">×</button>
         </div>
-        <form v-if="activeTab === 'products'" @submit.prevent="saveProduct">
-          <label class="form-field">Product name<input v-model="productForm.name" autofocus required maxlength="100" placeholder="e.g. Studio Table Lamp" /></label>
-          <div class="form-row">
-            <label class="form-field">SKU<input v-model="productForm.sku" required maxlength="40" placeholder="e.g. HOM-2048" /></label>
-            <label class="form-field">Category<select v-model="productForm.categoryId" required :disabled="store.categories.length === 0"><option value="" disabled>Select category</option><option v-for="category in store.categories" :key="category.id" :value="category.id">{{ category.name }}</option></select></label>
-          </div>
-          <div class="form-row">
-            <label class="form-field">Price (USD)<input v-model="productForm.price" required type="number" min="0" step="0.01" placeholder="0.00" /></label>
-            <label class="form-field">Stock quantity<input v-model="productForm.stock" required type="number" min="0" step="1" placeholder="0" /></label>
-          </div>
-          <p v-if="store.categories.length === 0" class="form-hint">Create a category before adding a product.</p>
-          <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
-          <div class="modal-actions"><button type="button" class="secondary-button" @click="closeModal">Cancel</button><button class="primary-button" :disabled="store.categories.length === 0">{{ editingItem ? 'Save changes' : 'Add product' }}</button></div>
-        </form>
-        <form v-else @submit.prevent="saveCategory">
-          <label class="form-field">Category name<input v-model="categoryForm.name" autofocus required maxlength="60" placeholder="e.g. Home & Living" /></label>
-          <label class="form-field">Description <span class="optional">(optional)</span><textarea v-model="categoryForm.description" maxlength="180" rows="3" placeholder="A short description of this category"></textarea></label>
-          <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
-          <div class="modal-actions"><button type="button" class="secondary-button" @click="closeModal">Cancel</button><button class="primary-button">{{ editingItem ? 'Save changes' : 'Add category' }}</button></div>
-        </form>
+        <ProductForm
+          v-if="activeTab === 'products'"
+          :product-form="productForm"
+          :categories="store.categories"
+          :error="formError"
+          :editing="Boolean(editingItem)"
+          @save="saveProduct"
+          @cancel="closeModal"
+        />
+        <CategoryForm
+          v-else
+          :category-form="categoryForm"
+          :error="formError"
+          :editing="Boolean(editingItem)"
+          @save="saveCategory"
+          @cancel="closeModal"
+        />
       </section>
     </div>
   </div>
