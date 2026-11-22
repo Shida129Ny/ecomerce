@@ -58,10 +58,6 @@ watch(store, (value) => {
   }
 }, { deep: true })
 
-const totalValue = computed(() => store.value.products.reduce((total, item) => total + item.price * item.stock, 0))
-const lowStockCount = computed(() => store.value.products.filter((item) => item.stock > 0 && item.stock < 10).length)
-const outOfStockCount = computed(() => store.value.products.filter((item) => item.stock === 0).length)
-
 const filteredProducts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return store.value.products.filter((item) => {
@@ -83,10 +79,6 @@ function getCategoryName(categoryId) {
 
 function getProductCount(categoryId) {
   return store.value.products.filter((product) => product.categoryId === categoryId).length
-}
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value)
 }
 
 function openCreate() {
@@ -182,119 +174,61 @@ function deleteCategory(item) {
 
 <template>
   <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="#" aria-label="Goodsly home" @click.prevent="activeTab = 'products'">
-        <span class="brand-mark">g.</span>
-        <span>goodsly</span>
-      </a>
-      <div class="side-label">WORKSPACE</div>
-      <nav class="side-nav" aria-label="Main navigation">
+    <header class="site-header">
+      <a class="brand" href="#" @click.prevent="activeTab = 'products'; searchQuery = ''">Store Admin</a>
+      <nav class="main-nav" aria-label="Main navigation">
         <button :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'; searchQuery = ''; categoryError = ''">
-          <span class="nav-icon">▦</span> Products
-          <span class="nav-count">{{ store.products.length }}</span>
+          Products <span>{{ store.products.length }}</span>
         </button>
         <button :class="{ active: activeTab === 'categories' }" @click="activeTab = 'categories'; searchQuery = ''; categoryError = ''">
-          <span class="nav-icon">◫</span> Categories
-          <span class="nav-count">{{ store.categories.length }}</span>
+          Categories <span>{{ store.categories.length }}</span>
         </button>
       </nav>
-      <div class="sidebar-note">
-        <span class="note-icon">✦</span>
-        <p>Your store,<br /><strong>all in one place.</strong></p>
-        <span class="note-caption">A little more organized every day.</span>
-      </div>
-      <div class="profile">
-        <div class="avatar">S</div>
-        <div class="profile-copy"><strong>Store admin</strong><span>Administrator</span></div>
-        <span class="profile-menu" aria-hidden="true">···</span>
-      </div>
-    </aside>
+    </header>
 
-    <main class="main-content">
-      <header class="topbar">
-        <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong>{{ activeTab === 'products' ? 'Products' : 'Categories' }}</strong></div>
-        <div class="topbar-right"><span class="live-dot"></span><span>Store is live</span><div class="top-avatar">S</div></div>
-      </header>
+    <main class="content">
+      <div class="page-heading">
+        <div>
+          <h1>{{ activeTab === 'products' ? 'Products' : 'Categories' }}</h1>
+          <p>Manage your store {{ activeTab }}.</p>
+        </div>
+        <button class="primary-button" @click="openCreate">Add {{ activeTab === 'products' ? 'product' : 'category' }}</button>
+      </div>
 
-      <section class="page-content">
-        <div class="welcome-row">
-          <div>
-            <div class="eyebrow">YOUR STORE AT A GLANCE</div>
-            <h1>Good morning <span class="wave">✳</span></h1>
-            <p class="page-subtitle">Here’s what’s happening with your store today.</p>
-          </div>
-          <div class="today-chip"><span>◷</span> Store overview</div>
+      <section class="panel">
+        <div class="toolbar">
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input v-model="searchQuery" :aria-label="`Search ${activeTab}`" :placeholder="`Search ${activeTab}`" />
+          </label>
+          <span class="item-count">{{ activeTab === 'products' ? filteredProducts.length : filteredCategories.length }} {{ activeTab }}</span>
         </div>
 
-        <section class="stats-grid" aria-label="Store overview">
-          <article class="stat-card">
-            <div class="stat-heading"><span>Total products</span><span class="stat-icon purple">▦</span></div>
-            <div class="stat-value">{{ store.products.length }}</div>
-            <div class="stat-foot"><span class="stat-muted">Across</span> {{ store.categories.length }} categories</div>
-          </article>
-          <article class="stat-card">
-            <div class="stat-heading"><span>Inventory value</span><span class="stat-icon green">$</span></div>
-            <div class="stat-value">{{ formatCurrency(totalValue) }}</div>
-            <div class="stat-foot"><span class="stat-muted">Based on current</span> stock</div>
-          </article>
-          <article class="stat-card">
-            <div class="stat-heading"><span>Low stock</span><span class="stat-icon amber">⌁</span></div>
-            <div class="stat-value">{{ lowStockCount }}</div>
-            <div class="stat-foot"><span class="stat-muted">Products below</span> 10 units</div>
-          </article>
-          <article class="stat-card">
-            <div class="stat-heading"><span>Out of stock</span><span class="stat-icon rose">⊘</span></div>
-            <div class="stat-value">{{ outOfStockCount }}</div>
-            <div class="stat-foot"><span class="stat-muted">Need</span> replenishing</div>
-          </article>
-        </section>
+        <div v-if="categoryError" class="inline-alert" role="alert">
+          <span>{{ categoryError }}</span><button aria-label="Dismiss message" @click="categoryError = ''">×</button>
+        </div>
 
-        <section class="catalog-card">
-          <div class="catalog-header">
-            <div>
-              <h2>Catalog</h2>
-              <p>Manage your products and the categories that organize them.</p>
-            </div>
-            <button class="primary-button" @click="openCreate"><span>＋</span> Add {{ activeTab === 'products' ? 'product' : 'category' }}</button>
-          </div>
-          <div class="catalog-toolbar">
-            <div class="tab-list" role="tablist" aria-label="Catalog sections">
-              <button role="tab" :aria-selected="activeTab === 'products'" :class="{ selected: activeTab === 'products' }" @click="activeTab = 'products'; searchQuery = ''; categoryError = ''">Products <span>{{ store.products.length }}</span></button>
-              <button role="tab" :aria-selected="activeTab === 'categories'" :class="{ selected: activeTab === 'categories' }" @click="activeTab = 'categories'; searchQuery = ''; categoryError = ''">Categories <span>{{ store.categories.length }}</span></button>
-            </div>
-            <label class="search-box">
-              <span class="search-icon">⌕</span>
-              <input v-model="searchQuery" :aria-label="`Search ${activeTab}`" :placeholder="`Search ${activeTab}...`" />
-            </label>
-          </div>
-
-          <div v-if="categoryError" class="inline-alert" role="alert">
-            <span>{{ categoryError }}</span><button aria-label="Dismiss message" @click="categoryError = ''">×</button>
-          </div>
-
-          <ProductList
-            v-if="activeTab === 'products'"
-            :products="filteredProducts"
-            :total-products="store.products.length"
-            :categories="store.categories"
-            @edit="openEdit"
-            @delete="deleteProduct"
-          />
-          <CategoryList
-            v-else
-            :categories="filteredCategories"
-            @edit="openEdit"
-            @delete="deleteCategory"
-          />
-        </section>
-        <footer class="page-footer"><span>Made for the little things that make a store.</span><span>Goodsly <b>·</b> Store dashboard</span></footer>
+        <ProductList
+          v-if="activeTab === 'products'"
+          :products="filteredProducts"
+          :total-products="store.products.length"
+          :categories="store.categories"
+          @edit="openEdit"
+          @delete="deleteProduct"
+        />
+        <CategoryList
+          v-else
+          :categories="filteredCategories"
+          @edit="openEdit"
+          @delete="deleteCategory"
+        />
       </section>
     </main>
 
     <div v-if="modalOpen" class="modal-backdrop" @click.self="closeModal">
       <section class="modal" role="dialog" aria-modal="true" :aria-labelledby="'modal-title'">
         <div class="modal-heading">
-          <div><div class="eyebrow">{{ editingItem ? 'UPDATE YOUR CATALOG' : 'GROW YOUR CATALOG' }}</div><h2 id="modal-title">{{ editingItem ? 'Edit' : 'Add' }} {{ activeTab === 'products' ? 'product' : 'category' }}</h2></div>
+          <h2 id="modal-title">{{ editingItem ? 'Edit' : 'Add' }} {{ activeTab === 'products' ? 'product' : 'category' }}</h2>
           <button class="close-button" aria-label="Close dialog" @click="closeModal">×</button>
         </div>
         <ProductForm
