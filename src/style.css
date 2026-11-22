@@ -11,13 +11,20 @@ body { min-width: 320px; min-height: 100vh; margin: 0; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 
-.site-header { display: flex; align-items: center; gap: 36px; min-height: 58px; padding: 0 max(calc((100vw - 1000px) / 2), 20px); border-bottom: 1px solid #ddd; background: #fff; }
-.brand { color: #222; font-size: 18px; font-weight: 700; text-decoration: none; white-space: nowrap; }
-.main-nav { display: flex; align-self: stretch; gap: 8px; }
-.main-nav button { display: flex; align-items: center; gap: 7px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; color: #555; background: transparent; }
-.main-nav button.active { border-bottom-color: #315fce; color: #244eae; font-weight: 700; }
-.main-nav button span { color: #777; font-size: 12px; }
-.content { width: min(100% - 40px, 1000px); margin: 32px auto; }
+.app-shell { min-height: 100vh; }
+.sidebar { position: fixed; inset: 0 auto 0 0; display: flex; width: 220px; flex-direction: column; padding: 22px 14px 16px; border-right: 1px solid #ddd; background: #fff; }
+.brand { padding: 3px 10px 24px; color: #222; font-size: 18px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.sidebar-nav { display: grid; gap: 5px; }
+.sidebar-nav button { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border: 0; border-radius: 4px; color: #444; background: transparent; text-align: left; }
+.sidebar-nav button > span:first-child { width: 18px; color: #666; text-align: center; }
+.sidebar-nav button.active { color: #244eae; background: #edf2ff; font-weight: 700; }
+.sidebar-nav button.active > span:first-child { color: #244eae; }
+.nav-count { margin-left: auto; color: #777; font-size: 12px; font-weight: 400; }
+.sidebar-note { margin: auto 10px 0; color: #777; font-size: 12px; line-height: 1.5; }
+.main-content { min-height: 100vh; margin-left: 220px; }
+.topbar { display: flex; height: 54px; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid #ddd; background: #fff; color: #555; font-size: 13px; }
+.topbar-status { color: #777; }
+.content { width: min(100% - 48px, 1100px); margin: 30px auto; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 h1 { margin: 0 0 6px; font-size: 24px; }
 .page-heading p { margin: 0; color: #666; font-size: 14px; }
@@ -45,6 +52,27 @@ h1 { margin: 0 0 6px; font-size: 24px; }
 .actions .delete-button:hover { background: #fff1f1; }
 .list-summary { margin: 0; padding: 12px 14px; }
 .empty-state { padding: 28px 14px !important; color: #666; text-align: center; }
+.summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.summary-card { display: grid; min-height: 120px; align-content: start; gap: 10px; padding: 16px; border: 1px solid #ddd; border-radius: 5px; color: #333; background: #fff; text-align: left; }
+button.summary-card:hover { border-color: #315fce; }
+.summary-card > span { color: #666; font-size: 13px; }
+.summary-card strong { font-size: 25px; }
+.summary-card small { color: #777; font-size: 12px; }
+.dashboard-columns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); gap: 16px; }
+.panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 14px; border-bottom: 1px solid #ddd; }
+.panel-heading h2, .quick-links h2 { margin: 0; font-size: 16px; }
+.text-button { padding: 5px 0; border: 0; color: #244eae; background: transparent; font-size: 13px; }
+.recent-list { margin: 0; padding: 0 14px; list-style: none; }
+.recent-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid #eee; }
+.recent-list li:last-child { border-bottom: 0; }
+.recent-list li > span:first-child { display: grid; gap: 4px; }
+.recent-list strong { font-size: 13px; font-weight: 600; }
+.recent-list small, .recent-price { color: #777; font-size: 12px; }
+.quick-links { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 14px; }
+.quick-links h2 { margin-bottom: 4px; }
+.quick-links button { display: flex; justify-content: space-between; padding: 10px; border: 1px solid #ddd; border-radius: 4px; color: #333; background: #fff; text-align: left; }
+.quick-links button:hover { border-color: #315fce; color: #244eae; }
+.quick-links button span { color: #777; }
 .category-grid { display: grid; gap: 0; padding: 0 14px; }
 .category-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid #e6e6e6; }
 .category-card:last-of-type { border-bottom: 0; }
@@ -71,8 +99,14 @@ h1 { margin: 0 0 6px; font-size: 24px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; border-top: 1px solid #ddd; }
 
 @media (max-width: 600px) {
-  .site-header { flex-wrap: wrap; gap: 8px 18px; padding: 10px 16px 0; }
-  .main-nav { min-height: 42px; }
+  .sidebar { position: static; width: 100%; min-height: auto; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px 0; border-right: 0; border-bottom: 1px solid #ddd; }
+  .brand { padding: 0 6px; }
+  .sidebar-nav { display: flex; flex: 1; gap: 2px; overflow-x: auto; }
+  .sidebar-nav button { min-height: 38px; gap: 6px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+  .sidebar-nav button > span:first-child { width: auto; }
+  .sidebar-note { display: none; }
+  .main-content { margin-left: 0; }
+  .topbar { height: 44px; padding: 0 14px; }
   .content { width: calc(100% - 24px); margin: 22px auto; }
   .page-heading { align-items: flex-start; }
   .page-heading h1 { font-size: 21px; }
@@ -80,6 +114,9 @@ h1 { margin: 0 0 6px; font-size: 24px; }
   .search-box { width: 100%; }
   .sort-control { justify-content: space-between; }
   .item-count { align-self: flex-end; }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .dashboard-columns { grid-template-columns: 1fr; }
+  .summary-card { min-height: 108px; padding: 12px; }
   .product-table th, .product-table td { padding: 10px; font-size: 12px; }
   .category-card { align-items: flex-start; }
   .form-row { grid-template-columns: 1fr; gap: 0; }

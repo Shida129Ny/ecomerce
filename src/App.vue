@@ -33,7 +33,7 @@ function loadStore() {
 }
 
 const store = ref(loadStore())
-const activeTab = ref('products')
+const activeTab = ref('dashboard')
 const searchQuery = ref('')
 const productSort = ref('name')
 const modalOpen = ref(false)
@@ -58,6 +58,11 @@ watch(store, (value) => {
     console.warn('Store changes could not be saved in this browser.', error)
   }
 }, { deep: true })
+
+const inventoryValue = computed(() => store.value.products.reduce((total, item) => total + item.price * item.stock, 0))
+const inventoryUnits = computed(() => store.value.products.reduce((total, item) => total + item.stock, 0))
+const lowStockCount = computed(() => store.value.products.filter((item) => item.stock < 10).length)
+const recentProducts = computed(() => store.value.products.slice(0, 5))
 
 const filteredProducts = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -87,6 +92,16 @@ function getCategoryName(categoryId) {
 
 function getProductCount(categoryId) {
   return store.value.products.filter((product) => product.categoryId === categoryId).length
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value)
+}
+
+function navigateTo(tab) {
+  activeTab.value = tab
+  searchQuery.value = ''
+  categoryError.value = ''
 }
 
 function openCreate() {
@@ -182,64 +197,113 @@ function deleteCategory(item) {
 
 <template>
   <div class="app-shell">
-    <header class="site-header">
-      <a class="brand" href="#" @click.prevent="activeTab = 'products'; searchQuery = ''">Store Admin</a>
-      <nav class="main-nav" aria-label="Main navigation">
-        <button :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'; searchQuery = ''; categoryError = ''">
-          Products <span>{{ store.products.length }}</span>
+    <aside class="sidebar">
+      <a class="brand" href="#" @click.prevent="navigateTo('dashboard')">Store Admin</a>
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <button :class="{ active: activeTab === 'dashboard' }" @click="navigateTo('dashboard')">
+          <span aria-hidden="true">⌂</span> Dashboard
         </button>
-        <button :class="{ active: activeTab === 'categories' }" @click="activeTab = 'categories'; searchQuery = ''; categoryError = ''">
-          Categories <span>{{ store.categories.length }}</span>
+        <button :class="{ active: activeTab === 'products' }" @click="navigateTo('products')">
+          <span aria-hidden="true">▤</span> Products <span class="nav-count">{{ store.products.length }}</span>
+        </button>
+        <button :class="{ active: activeTab === 'categories' }" @click="navigateTo('categories')">
+          <span aria-hidden="true">◫</span> Categories <span class="nav-count">{{ store.categories.length }}</span>
         </button>
       </nav>
-    </header>
+      <p class="sidebar-note">Catalog data is saved in this browser.</p>
+    </aside>
 
-    <main class="content">
-      <div class="page-heading">
-        <div>
-          <h1>{{ activeTab === 'products' ? 'Products' : 'Categories' }}</h1>
-          <p>Manage your store {{ activeTab }}.</p>
-        </div>
-        <button class="primary-button" @click="openCreate">Add {{ activeTab === 'products' ? 'product' : 'category' }}</button>
-      </div>
-
-      <section class="panel">
-        <div class="toolbar">
-          <label class="search-box">
-            <span aria-hidden="true">⌕</span>
-            <input v-model="searchQuery" :aria-label="`Search ${activeTab}`" :placeholder="`Search ${activeTab}`" />
-          </label>
-          <label v-if="activeTab === 'products'" class="sort-control">
-            Sort by
-            <select v-model="productSort" aria-label="Sort products">
-              <option value="name">Name</option>
-              <option value="price">Price</option>
-              <option value="stock">Stock</option>
-            </select>
-          </label>
-          <span class="item-count">{{ activeTab === 'products' ? filteredProducts.length : filteredCategories.length }} {{ activeTab }}</span>
+    <div class="main-content">
+      <header class="topbar"><span>Store management</span><span class="topbar-status">Local data</span></header>
+      <main class="content">
+        <div class="page-heading">
+          <div>
+            <h1>{{ activeTab === 'dashboard' ? 'Dashboard' : activeTab === 'products' ? 'Products' : 'Categories' }}</h1>
+            <p v-if="activeTab === 'dashboard'">A quick overview of your store.</p>
+            <p v-else>Manage your store {{ activeTab }}.</p>
+          </div>
+          <button v-if="activeTab !== 'dashboard'" class="primary-button" @click="openCreate">
+            Add {{ activeTab === 'products' ? 'product' : 'category' }}
+          </button>
         </div>
 
-        <div v-if="categoryError" class="inline-alert" role="alert">
-          <span>{{ categoryError }}</span><button aria-label="Dismiss message" @click="categoryError = ''">×</button>
-        </div>
+        <section v-if="activeTab === 'dashboard'" class="dashboard-view">
+          <div class="summary-grid">
+            <button class="summary-card" @click="navigateTo('products')">
+              <span>Total products</span><strong>{{ store.products.length }}</strong><small>View products</small>
+            </button>
+            <button class="summary-card" @click="navigateTo('categories')">
+              <span>Categories</span><strong>{{ store.categories.length }}</strong><small>View categories</small>
+            </button>
+            <article class="summary-card">
+              <span>Units in stock</span><strong>{{ inventoryUnits }}</strong><small>{{ formatCurrency(inventoryValue) }} inventory value</small>
+            </article>
+            <button class="summary-card" @click="navigateTo('products')">
+              <span>Low stock</span><strong>{{ lowStockCount }}</strong><small>Products under 10 units</small>
+            </button>
+          </div>
 
-        <ProductList
-          v-if="activeTab === 'products'"
-          :products="sortedProducts"
-          :total-products="store.products.length"
-          :categories="store.categories"
-          @edit="openEdit"
-          @delete="deleteProduct"
-        />
-        <CategoryList
-          v-else
-          :categories="filteredCategories"
-          @edit="openEdit"
-          @delete="deleteCategory"
-        />
-      </section>
-    </main>
+          <div class="dashboard-columns">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>Recent products</h2>
+                <button class="text-button" @click="navigateTo('products')">View all</button>
+              </div>
+              <ul v-if="recentProducts.length" class="recent-list">
+                <li v-for="item in recentProducts" :key="item.id">
+                  <span><strong>{{ item.name }}</strong><small>{{ getCategoryName(item.categoryId) }}</small></span>
+                  <span class="recent-price">{{ formatCurrency(item.price) }}</span>
+                </li>
+              </ul>
+              <p v-else class="empty-state">No products yet.</p>
+            </section>
+
+            <section class="panel quick-links">
+              <h2>Quick links</h2>
+              <button @click="navigateTo('products')">Manage products <span>→</span></button>
+              <button @click="navigateTo('categories')">Manage categories <span>→</span></button>
+            </section>
+          </div>
+        </section>
+
+        <section v-else class="panel">
+          <div class="toolbar">
+            <label class="search-box">
+              <span aria-hidden="true">⌕</span>
+              <input v-model="searchQuery" :aria-label="`Search ${activeTab}`" :placeholder="`Search ${activeTab}`" />
+            </label>
+            <label v-if="activeTab === 'products'" class="sort-control">
+              Sort by
+              <select v-model="productSort" aria-label="Sort products">
+                <option value="name">Name</option>
+                <option value="price">Price</option>
+                <option value="stock">Stock</option>
+              </select>
+            </label>
+            <span class="item-count">{{ activeTab === 'products' ? filteredProducts.length : filteredCategories.length }} {{ activeTab }}</span>
+          </div>
+
+          <div v-if="categoryError" class="inline-alert" role="alert">
+            <span>{{ categoryError }}</span><button aria-label="Dismiss message" @click="categoryError = ''">×</button>
+          </div>
+
+          <ProductList
+            v-if="activeTab === 'products'"
+            :products="sortedProducts"
+            :total-products="store.products.length"
+            :categories="store.categories"
+            @edit="openEdit"
+            @delete="deleteProduct"
+          />
+          <CategoryList
+            v-else
+            :categories="filteredCategories"
+            @edit="openEdit"
+            @delete="deleteCategory"
+          />
+        </section>
+      </main>
+    </div>
 
     <div v-if="modalOpen" class="modal-backdrop" @click.self="closeModal">
       <section class="modal" role="dialog" aria-modal="true" :aria-labelledby="'modal-title'">
