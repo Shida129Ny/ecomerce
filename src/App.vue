@@ -35,6 +35,7 @@ function loadStore() {
 const store = ref(loadStore())
 const activeTab = ref('products')
 const searchQuery = ref('')
+const productSort = ref('name')
 const modalOpen = ref(false)
 const editingItem = ref(null)
 const formError = ref('')
@@ -64,6 +65,13 @@ const filteredProducts = computed(() => {
     const category = getCategoryName(item.categoryId)
     return !query || [item.name, item.sku, category].some((value) => value.toLowerCase().includes(query))
   })
+})
+
+const sortedProducts = computed(() => {
+  const products = [...filteredProducts.value]
+  if (productSort.value === 'price') return products.sort((a, b) => a.price - b.price)
+  if (productSort.value === 'stock') return products.sort((a, b) => a.stock - b.stock)
+  return products.sort((a, b) => a.name.localeCompare(b.name))
 })
 
 const filteredCategories = computed(() => {
@@ -201,6 +209,14 @@ function deleteCategory(item) {
             <span aria-hidden="true">⌕</span>
             <input v-model="searchQuery" :aria-label="`Search ${activeTab}`" :placeholder="`Search ${activeTab}`" />
           </label>
+          <label v-if="activeTab === 'products'" class="sort-control">
+            Sort by
+            <select v-model="productSort" aria-label="Sort products">
+              <option value="name">Name</option>
+              <option value="price">Price</option>
+              <option value="stock">Stock</option>
+            </select>
+          </label>
           <span class="item-count">{{ activeTab === 'products' ? filteredProducts.length : filteredCategories.length }} {{ activeTab }}</span>
         </div>
 
@@ -210,7 +226,7 @@ function deleteCategory(item) {
 
         <ProductList
           v-if="activeTab === 'products'"
-          :products="filteredProducts"
+          :products="sortedProducts"
           :total-products="store.products.length"
           :categories="store.categories"
           @edit="openEdit"
