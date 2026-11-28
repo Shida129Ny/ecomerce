@@ -19,14 +19,35 @@ function formatCurrency(value) {
 <template>
   <div class="table-scroll">
     <table class="product-table">
-      <thead><tr><th>Product</th><th>SKU</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>SKU</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
       <tbody>
         <tr v-for="item in products" :key="item.id">
-          <td>{{ item.name }}</td>
+          <td>
+            <div class="table-product-name">
+              <strong>{{ item.name }}</strong>
+              <span v-if="item.featured" class="featured-tag">Featured</span>
+            </div>
+          </td>
           <td>{{ item.sku }}</td>
           <td>{{ getCategoryName(item.categoryId, categories) }}</td>
           <td>{{ formatCurrency(item.price) }}</td>
-          <td>{{ item.stock }}</td>
+          <td>
+            <span
+              class="stock-badge"
+              :class="item.stock === 0 ? 'out' : item.stock < 10 ? 'low' : 'ok'"
+            >
+              {{ item.stock === 0 ? 'Out of stock' : `${item.stock} in stock` }}
+            </span>
+          </td>
           <td>
             <div class="actions">
               <button type="button" @click="emit('edit', item)">Edit</button>
@@ -34,7 +55,9 @@ function formatCurrency(value) {
             </div>
           </td>
         </tr>
-        <tr v-if="products.length === 0"><td colspan="6" class="empty-state">No products found.</td></tr>
+        <tr v-if="products.length === 0">
+          <td colspan="6" class="empty-state">No products found.</td>
+        </tr>
       </tbody>
     </table>
     <p class="list-summary">Showing {{ products.length }} of {{ totalProducts }} products</p>
