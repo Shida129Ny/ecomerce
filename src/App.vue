@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import CategoryForm from './category/CategoryForm.vue'
-import CategoryList from './category/CategoryList.vue'
 import ProductForm from './product/ProductForm.vue'
 import ProductList from './product/ProductList.vue'
+import ProductCat from './product/productcat.vue'
 
 const storageKey = 'goodsly-store-data'
 const starterData = {
@@ -266,13 +266,13 @@ function deleteCategory(item) {
           </div>
         </section>
 
-        <section v-else class="panel">
+        <section v-else-if="activeTab === 'products'" class="panel">
           <div class="toolbar">
             <label class="search-box">
               <span aria-hidden="true">⌕</span>
               <input v-model="searchQuery" :aria-label="`Search ${activeTab}`" :placeholder="`Search ${activeTab}`" />
             </label>
-            <label v-if="activeTab === 'products'" class="sort-control">
+            <label class="sort-control">
               Sort by
               <select v-model="productSort" aria-label="Sort products">
                 <option value="name">Name</option>
@@ -280,28 +280,28 @@ function deleteCategory(item) {
                 <option value="stock">Stock</option>
               </select>
             </label>
-            <span class="item-count">{{ activeTab === 'products' ? filteredProducts.length : filteredCategories.length }} {{ activeTab }}</span>
-          </div>
-
-          <div v-if="categoryError" class="inline-alert" role="alert">
-            <span>{{ categoryError }}</span><button aria-label="Dismiss message" @click="categoryError = ''">×</button>
+            <span class="item-count">{{ filteredProducts.length }} products</span>
           </div>
 
           <ProductList
-            v-if="activeTab === 'products'"
             :products="sortedProducts"
             :total-products="store.products.length"
             :categories="store.categories"
             @edit="openEdit"
             @delete="deleteProduct"
           />
-          <CategoryList
-            v-else
-            :categories="filteredCategories"
-            @edit="openEdit"
-            @delete="deleteCategory"
-          />
         </section>
+
+        <ProductCat
+          v-else
+          v-model:search-query="searchQuery"
+          :categories="filteredCategories"
+          :total-categories="store.categories.length"
+          :error="categoryError"
+          @edit="openEdit"
+          @delete="deleteCategory"
+          @dismiss-error="categoryError = ''"
+        />
       </main>
     </div>
 
